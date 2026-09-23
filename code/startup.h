@@ -9,9 +9,6 @@
 
 #pragma once
 
-void Unattended_Set_Headless(void);
-bool Unattended_Is_Headless(void);
-bool Unattended_Set_CRC_Log(char const * path);
-void Unattended_Set_Exit_Frame(int frame);
-void Unattended_Set_Tick_Callback(bool (*callback)(void * context), void * context);
-void Unattended_Tick_Done(void);
+#include <windows.h>
+
+int Game_Main(HINSTANCE instance, int command_show, int argc, char ** argv);

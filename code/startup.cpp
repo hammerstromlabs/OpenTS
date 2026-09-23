@@ -115,6 +115,7 @@
 #include "spawner.h"
 #include "smudge.h"
 #include "smudtype.h"
+#include "startup.h"
 #include "sun.h"
 #include "super.h"
 #include "suprtype.h"
@@ -340,27 +341,17 @@ static int Build_Arguments(char const * path_to_exe, char ** & argv)
 }
 
 
-/***********************************************************************************************
- * main -- Initial startup routine (preps library systems).                                    *
- *                                                                                             *
- *    This is the routine that is first called when the program starts up. It basically        *
- *    handles the command line parsing and setting up library systems.                         *
- *                                                                                             *
- * INPUT:   argc  -- Number of command line arguments.                                         *
- *                                                                                             *
- *          argv  -- Pointer to array of command line argument strings.                        *
- *                                                                                             *
- * OUTPUT:  Returns with execution failure code (if any).                                      *
- *                                                                                             *
- * WARNINGS:   none                                                                            *
- *                                                                                             *
- * HISTORY:                                                                                    *
- *   03/20/1995 JLB : Created.                                                                 *
- *=============================================================================================*/
-int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_show )
+/// <summary>
+/// Runs the game from startup to shutdown and returns its exit code. WinMain calls it with the
+/// process's own command line; a program hosting the engine calls it on a thread of its own.
+/// </summary>
+/// <param name="instance">The module whose resources the game uses.</param>
+/// <param name="command_show">How the main window is first shown.</param>
+/// <param name="argc">The number of arguments in argv.</param>
+/// <param name="argv">The arguments, or NULL to parse the process's command line. The first
+/// names the executable, whose folder becomes the working directory.</param>
+int Game_Main(HINSTANCE instance, int command_show, int argc, char ** argv)
 {
-	int		argc;       //Command line argument count
-	char **	argv;       //Pointers to command line arguments
 	char	path_to_exe[MAX_PATH];
 	char	buffer[512];
 
@@ -472,7 +463,9 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 	**	Get pointers to command line arguments just like if we were in DOS
 	**
 	*/
-	argc = Build_Arguments(path_to_exe, argv);
+	if (argv == NULL) {
+		argc = Build_Arguments(path_to_exe, argv);
+	}
 
 	/*
 	**	Change directory to the where the executable is located. Handle the
@@ -663,6 +656,16 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 	return(error_code);
 }
+
+
+/// <summary>
+/// Starts the game with the process's own command line.
+/// </summary>
+int CALLBACK WinMain(HINSTANCE instance, HINSTANCE, char *, int command_show)
+{
+	return(Game_Main(instance, command_show, 0, NULL));
+}
+
 
 /***********************************************************************************************
  * Prog_End -- Cleans up library systems in prep for game exit.                                *

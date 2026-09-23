@@ -19,6 +19,8 @@
 static bool IsHeadless = false;
 static std::FILE * CRCLog = nullptr;
 static int ExitFrame = 0;
+static bool (*TickCallback)(void * context) = nullptr;
+static void * TickContext = nullptr;
 
 
 /// <summary>
@@ -63,13 +65,30 @@ void Unattended_Set_Exit_Frame(int frame)
 
 
 /// <summary>
-/// Logs the checksum and ends the game at the exit frame. Call after each tick that carried
-/// on, once Main_Loop_End_Tick has run.
+/// Has a program hosting the engine called after every tick, on the game's own thread, where
+/// it may read the game's state. The game ends when the callback returns false.
+/// </summary>
+/// <param name="callback">The function to call, or nullptr for none.</param>
+/// <param name="context">Passed to the callback unchanged.</param>
+void Unattended_Set_Tick_Callback(bool (*callback)(void * context), void * context)
+{
+	TickCallback = callback;
+	TickContext = context;
+}
+
+
+/// <summary>
+/// Logs the checksum, calls the host back and ends the game at the exit frame. Call after
+/// each tick that carried on, once Main_Loop_End_Tick has run.
 /// </summary>
 void Unattended_Tick_Done(void)
 {
 	if (CRCLog != nullptr) {
 		std::fprintf(CRCLog, "%d %08X\n", Frame, Calculate_Game_CRC());
+	}
+
+	if (TickCallback != nullptr && !TickCallback(TickContext)) {
+		GameActive = false;
 	}
 
 	if (ExitFrame > 0 && Frame >= ExitFrame) {

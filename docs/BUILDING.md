@@ -111,6 +111,23 @@ Saved games, logs, and crash reports go to the user directory, which defaults to
 the executable's own directory, so a build writes beside itself unless
 `-USERDIR=` says otherwise.
 
+### Embedding the engine
+
+Another CMake project can build the engine into an executable of its own by
+adding the repository root with `add_subdirectory`. The engine's tests are then
+left out: `OPENTS_BUILD_TESTS` defaults to on only when OpenTS is the top-level
+project. The host:
+
+- links the `OpenTSEngine` object library, which keeps every object file;
+- compiles against the static C runtime (`/MT`, `/MTd`), as the engine does;
+- adds `code/Sun.rc` and `code/except.rc` to its executable, because resources
+  link only into executables;
+- puts `Language.dll` beside its executable.
+
+`Game_Main` (`code/startup.h`) runs the game with an explicit argument list, and
+may be called on a thread of the host's own. `Unattended_Set_Tick_Callback`
+(`code/unattended.h`) calls the host after every tick, on the game's thread.
+
 ## Experimental clang-cl cross-build
 
 An unsupported Linux cross-build is available for compiler-portability work. It
