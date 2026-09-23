@@ -162,9 +162,8 @@ void ScrollClass::AI(KeyNumType &input, Point2D const & xy)
 
 /// <summary>
 /// Determines what lies underneath a point on the tactical view.
-/// This routine is used by the mouse handling before it can decide on an action. Enemy
-/// objects the player is not meant to see -- cloaked units and invisible types -- are not
-/// reported, and neither is anything hidden behind shroud or fog.
+/// This routine is used by the mouse handling before it can decide on an action. What it
+/// reports is filtered as Resolve_Target describes.
 /// </summary>
 /// <param name="point">The mouse position, relative to the tactical view.</param>
 /// <param name="cell">Receives the cell that lies under the point.</param>
@@ -189,51 +188,77 @@ bool ScrollClass::Resolve_Point(Point2D const & point, Cell & cell, Coord & coor
 	coord = (TacticalMap != NULL) ? TacticalMap->Pixel_To_Coord(point + TacticalRect.TopLeft) : COORD_NONE;
 
 	if (TacticalMap != NULL && Map.In_Radar(coord)) {
-		Coord coord_height_adjusted = Coord(cell, Map.Get_Height_GL(Coord(cell)));
+		object = TacticalMap->Get_Selectable_Object(point);
+	}
 
-		shadow = Map.Is_Shrouded(coord_height_adjusted) && MainWindow != NULL;
-		fog = false;
+	return(Resolve_Target(cell, coord, object, fog, shadow));
+}
 
-		if (Scen->Special.IsFogOfWar) {
-			BuildingClass* building = Map[coord_height_adjusted].Cell_Building();
-			if (building != NULL) {
-				fog = building->IsFogged;
-			} else {
-				fog = Map.Is_Fogged(coord_height_adjusted) && MainWindow != NULL;
-			}
+
+/// <summary>
+/// Applies the player's view of the map to a spot and the object found there.
+/// Enemy objects the player is not meant to see -- cloaked units and invisible types -- are
+/// not reported, and neither is anything hidden behind shroud or fog. Pointing devices that
+/// find the spot some other way than through the tactical view use this directly.
+/// </summary>
+/// <param name="cell">The cell being pointed at.</param>
+/// <param name="coord">The coordinate being pointed at, within that cell.</param>
+/// <param name="object">The object being pointed at, or NULL; cleared if the player may not
+/// target it.</param>
+/// <param name="fog">Receives whether the spot is covered by fog of war.</param>
+/// <param name="shadow">Receives whether the spot is covered by shroud.</param>
+/// <returns>bool; Does the spot lie on the map? If not, the object is cleared.</returns>
+bool ScrollClass::Resolve_Target(Cell const & cell, Coord const & coord, ObjectClass * & object, bool & fog, bool & shadow)
+{
+	fog = false;
+	shadow = false;
+
+	if (TacticalMap == NULL || !Map.In_Radar(coord)) {
+		object = NULL;
+		return(false);
+	}
+
+	Coord coord_height_adjusted = Coord(cell, Map.Get_Height_GL(Coord(cell)));
+
+	shadow = Map.Is_Shrouded(coord_height_adjusted) && MainWindow != NULL;
+	fog = false;
+
+	if (Scen->Special.IsFogOfWar) {
+		BuildingClass* building = Map[coord_height_adjusted].Cell_Building();
+		if (building != NULL) {
+			fog = building->IsFogged;
+		} else {
+			fog = Map.Is_Fogged(coord_height_adjusted) && MainWindow != NULL;
 		}
+	}
 
-		/*
-		**	Determine the object that the mouse is currently over.
-		*/
-		if (!shadow && !fog) {
-			object = TacticalMap->Get_Selectable_Object(point);
-
-			TechnoClass * techno = Dynamic_Cast<TechnoClass *>(object);
-			if (techno != NULL) {
-
-				/*
-				**	Special case check to ignore cloaked object if not owned by the player.
-				*/
-				if (!techno->IsOwnedByPlayer && ((techno->Cloak == CLOAKED && !techno->Is_Sensed_By_Player()) || techno->TClass->IsInvisible)) {
-					object = NULL;
-				}
-			}
-
-			if (object != NULL && object->RTTI == RTTI_BUILDING) {
-				BuildingClass * building = (BuildingClass *)object;
-
-				/*
-				**	Special case check to ignore cloaked object if not owned by the player.
-				*/
-				if (!building->IsOwnedByPlayer && ((building->TranslucencyLevel == 15 && !techno->Is_Sensed_By_Player()) || building->Class->IsInvisibleInGame)) {
-					object = NULL;
-				}
-			}
-		}
+	if (shadow || fog) {
+		object = NULL;
 		return(true);
 	}
-	return(false);
+
+	TechnoClass * techno = Dynamic_Cast<TechnoClass *>(object);
+	if (techno != NULL) {
+
+		/*
+		**	Special case check to ignore cloaked object if not owned by the player.
+		*/
+		if (!techno->IsOwnedByPlayer && ((techno->Cloak == CLOAKED && !techno->Is_Sensed_By_Player()) || techno->TClass->IsInvisible)) {
+			object = NULL;
+		}
+	}
+
+	if (object != NULL && object->RTTI == RTTI_BUILDING) {
+		BuildingClass * building = (BuildingClass *)object;
+
+		/*
+		**	Special case check to ignore cloaked object if not owned by the player.
+		*/
+		if (!building->IsOwnedByPlayer && ((building->TranslucencyLevel == 15 && !techno->Is_Sensed_By_Player()) || building->Class->IsInvisibleInGame)) {
+			object = NULL;
+		}
+	}
+	return(true);
 }
 
 

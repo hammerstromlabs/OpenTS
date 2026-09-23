@@ -99,6 +99,7 @@ class ScrollClass: public TabClass
 		virtual void Abort_Drag_Select(void) override;
 
 		bool Resolve_Point(Point2D const & point, Cell & cell, Coord & coord, ObjectClass * & object, bool & fog, bool & shadow);
+		bool Resolve_Target(Cell const & cell, Coord const & coord, ObjectClass * & object, bool & fog, bool & shadow);
 
 		ActionType What_Action(Cell const & cell, ObjectClass * object, bool check_fog);
 
