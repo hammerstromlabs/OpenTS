@@ -47,6 +47,7 @@ bool Queue_Options(void);
 bool Queue_Exit(void);
 void Queue_AI(void);
 void Add_CRC(unsigned int *crc, unsigned int val);
+unsigned int Calculate_Game_CRC(void);
 
 void Wait_For_End_Of_Queue(void);
 
