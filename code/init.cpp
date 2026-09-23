@@ -179,6 +179,7 @@
 #include "tube.h"
 #include "tutorial.h"
 #include "uicontrol.h"
+#include "unattended.h"
 #include "unit.h"
 #include "unittype.h"
 #include "vein.h"
@@ -1746,6 +1747,23 @@ bool Parse_Command_Line(int argc, char * argv[])
 		// A client asking the game to launch what SPAWN.INI describes.
 		if (stricmp(string, "-SPAWN") == 0) {
 			Spawner_Request();
+			continue;
+		}
+
+		if (stricmp(string, "-HEADLESS") == 0) {
+			Unattended_Set_Headless();
+			continue;
+		}
+
+		if (strnicmp(string, "-CRCLOG=", strlen("-CRCLOG=")) == 0) {
+			if (!Unattended_Set_CRC_Log(&original[strlen("-CRCLOG=")])) {
+				DebugString("Cannot create the checksum log %s.\n", &original[strlen("-CRCLOG=")]);
+			}
+			continue;
+		}
+
+		if (strnicmp(string, "-EXITFRAME=", strlen("-EXITFRAME=")) == 0) {
+			Unattended_Set_Exit_Frame(atoi(string + strlen("-EXITFRAME=")));
 			continue;
 		}
 

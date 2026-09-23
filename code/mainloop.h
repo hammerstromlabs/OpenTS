@@ -34,6 +34,7 @@
 #include "keyboard.h"
 
 bool Main_Loop(void);
+bool Main_Loop_Headless(void);
 void Main_Loop_Begin_Tick(void);
 bool Main_Loop_Tick(void);
 void Main_Loop_End_Tick(void);

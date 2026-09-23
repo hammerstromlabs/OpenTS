@@ -60,6 +60,7 @@
 #include "theme.h"
 #include "timer.h"
 #include "tracker.h"
+#include "unattended.h"
 
 #include "bench.hh"
 #include "special.hh"
@@ -461,9 +462,38 @@ bool Main_Loop(void)
 	if (Main_Loop_Tick()) {
 		Sync_Delay();
 		Main_Loop_End_Tick();
+		Unattended_Tick_Done();
 	}
 
 	BEnd(BENCH_GAME_FRAME);
+
+	InMainLoop = false;
+
+	return(!GameActive);
+}
+
+
+
+/// <summary>
+/// Plays one tick with nothing drawn and no waiting. Used in place of Main_Loop when the game
+/// runs headless.
+/// </summary>
+/// <returns>bool; Should the game end?</returns>
+bool Main_Loop_Headless(void)
+{
+	if (!GameActive) {
+		return(!GameActive);
+	}
+
+	InMainLoop = true;
+
+	Windows_Message_Handler();
+
+	Main_Loop_Begin_Tick();
+	if (Main_Loop_Tick()) {
+		Main_Loop_End_Tick();
+		Unattended_Tick_Done();
+	}
 
 	InMainLoop = false;
 

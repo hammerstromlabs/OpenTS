@@ -68,6 +68,7 @@
 #include "resource.h"
 #include "session.h"
 #include "theme.h"
+#include "unattended.h"
 #include "video.h"
 #include "win.h"
 #include "wincursor.h"
@@ -506,7 +507,7 @@ void Create_Main_Window ( HINSTANCE instance , int command_show , int width , in
 								NULL );
 	}
 
-	ShowWindow (MainWindow, SW_NORMAL);
+	ShowWindow (MainWindow, Unattended_Is_Headless() ? SW_HIDE : SW_NORMAL);
 	ShowCommand = command_show;
 	UpdateWindow (MainWindow);
 	SetFocus (MainWindow);

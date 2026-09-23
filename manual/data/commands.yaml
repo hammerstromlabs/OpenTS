@@ -2385,6 +2385,42 @@ launch_options:
   _provenance:
     source: code/init.cpp
     guard: null
+- id: launch:headless
+  route_id: headless
+  kind: launch
+  title: Headless play
+  description: Plays the game with its window hidden, running each tick straight after the last with nothing
+    drawn or presented. For unattended runs, such as a computer-only match launched from SPAWN.INI; nothing
+    ends the game except the match itself or -EXITFRAME.
+  audience: developer
+  availability: *id001
+  syntax: -HEADLESS
+  _provenance:
+    source: code/init.cpp
+    guard: null
+- id: launch:checksum-log
+  route_id: checksum-log
+  kind: launch
+  title: Checksum log
+  description: Writes the game checksum to the file after every tick, one line of frame number and checksum
+    each, so that two runs of the same game can be compared line by line.
+  audience: developer
+  availability: *id001
+  syntax: -CRCLOG=<file>
+  _provenance:
+    source: code/init.cpp
+    guard: null
+- id: launch:exit-frame
+  route_id: exit-frame
+  kind: launch
+  title: Exit frame
+  description: Ends the game once that many ticks have been played.
+  audience: developer
+  availability: *id001
+  syntax: -EXITFRAME=<frame>
+  _provenance:
+    source: code/init.cpp
+    guard: null
 - id: launch:seed
   route_id: seed
   kind: launch

@@ -115,6 +115,7 @@
 #include "stats.h"
 #include "surface.h"
 #include "tactical.h"
+#include "unattended.h"
 #include "theme.h"
 #include "voc.h"
 #include "vox.h"
@@ -424,7 +425,7 @@ void Main_Game(int argc, char * argv[])
 			**	Non-scenario-editor-mode: call the game's main loop
 			*/
 			if (!Debug_Map) {
-				if (Main_Loop()) {
+				if (Unattended_Is_Headless() ? Main_Loop_Headless() : Main_Loop()) {
 					break;
 				}
 
@@ -447,7 +448,7 @@ void Main_Game(int argc, char * argv[])
 			/*
 			**	Call the game's main loop
 			*/
-			if (Main_Loop()) {
+			if (Unattended_Is_Headless() ? Main_Loop_Headless() : Main_Loop()) {
 				break;
 			}
 
