@@ -173,51 +173,13 @@ static void Check_For_Focus_Loss(void)
 
 bool InMainLoop = false;
 
-/***********************************************************************************************
- * Main_Loop -- This is the main game loop (as a single loop).                                 *
- *                                                                                             *
- *    This function will perform one game loop.                                                *
- *                                                                                             *
- * INPUT:   none                                                                               *
- *                                                                                             *
- * OUTPUT:  bool; Should the game end?                                                         *
- *                                                                                             *
- * WARNINGS:   none                                                                            *
- *                                                                                             *
- * HISTORY:                                                                                    *
- *   10/01/1994 JLB : Created.                                                                 *
- *=============================================================================================*/
-bool Main_Loop(void)
+/// <summary>
+/// Starts a tick of game logic: arms the sync-bug trap and starts the AI processing timer.
+/// Call Main_Loop_Tick next. Main_Loop presents a frame in between, so the processing time
+/// it reports for network rate control includes that frame.
+/// </summary>
+void Main_Loop_Begin_Tick(void)
 {
-	KeyNumType	input;					// Player input.
-	int x;
-	int y;
-	int framedelay;
-
-	//Mono_Set_Cursor(0,0);
-
-	if (!GameActive) {return(!GameActive);}
-
-	InMainLoop = true;
-
-	/*
-	**	Call the focus loss handler
-	*/
-	#if 0
-	Check_For_Focus_Loss();
-	#else
-	while (!GameInFocus) {
-		if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
-			Sleep(500);
-			Windows_Message_Handler();
-		} else {
-			Sleep(10);
-			Windows_Message_Handler();
-			break;
-		}
-	}
-	#endif
-
 	/*
 	**	Sync-bug trapping code
 	*/
@@ -241,57 +203,36 @@ bool Main_Loop(void)
 	*/
 	Self_Regulate();
 #endif
+}
 
-	BStart(BENCH_GAME_FRAME);
 
-	/*
-	**	If there is no theme playing, but it looks like one is required, then start one
-	**	playing. This is usually the symptom of there being no transition score.
-	*/
-	if (AudioEngine.Is_Available() && Theme.What_Is_Playing() == THEME_NONE) {
-		Theme.Queue_Song(THEME_PICK_ANOTHER);
-	}
+static void Main_Loop_Present(void)
+{
+	KeyNumType	input;					// Player input.
+	int x;
+	int y;
 
-	/*
-	**	Setup the timer so that the Main_Loop function processes at the correct rate.
-	*/
-	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH &&
-		Session.CommProtocol == COMM_PROTOCOL_MULTI_E_COMP) {
-
-		//
-		// In playback mode, run as fast as possible.
-		//
-		if (Session.Play) {
-			FrameTimer = 0;
-		} else {
-			framedelay = TIMER_SECOND / Session.DesiredFrameRate;
-			FrameTimer = framedelay;
-			framedelay = 1000 / Session.DesiredFrameRate;
-			NetFrameTimer = framedelay;
+	if (SpecialDialog == SDLG_NONE && GameInFocus) {
+		Map.Input(input, x, y);
+		if (input) {
+			Keyboard_Process(input);
 		}
-	} else {
-		FrameTimer = Options.GameSpeed;
-	}
-
-	/*
-	**	Update the display, unless we're inside a dialog.
-	*/
-	if (!Session.Play) {
-		if (SpecialDialog == SDLG_NONE && GameInFocus) {
-			Map.Input(input, x, y);
-			if (input) {
-				Keyboard_Process(input);
-			}
-			if ((Frame & 7) == 7 && Session.Type == GAME_INTERNET) {
-				Ipx.Store_Stats();
-			}
-			Update_Fogged_Objects();
-			Map.Render();
+		if ((Frame & 7) == 7 && Session.Type == GAME_INTERNET) {
+			Ipx.Store_Stats();
 		}
+		Update_Fogged_Objects();
+		Map.Render();
 	}
+}
 
-	drag_select_aborted = false;
 
+/// <summary>
+/// Runs one tick of game logic and processes the commands that are due.
+/// </summary>
+/// <returns>bool; Did the scenario carry on? False when this tick won, lost, restarted or
+/// aborted it; Main_Loop_End_Tick must then not be called.</returns>
+bool Main_Loop_Tick(void)
+{
 	/*
 	**	Save map's position & selected objects, if we're recording the game.
 	*/
@@ -416,10 +357,110 @@ bool Main_Loop(void)
 			}
 		}
 #endif
+	}
 
+	return(!done);
+}
+
+
+/// <summary>
+/// Finishes a tick that Main_Loop_Tick carried on: deletes the objects it retired and
+/// services pending saves.
+/// </summary>
+void Main_Loop_End_Tick(void)
+{
+	Process_Deferred_Deletion();
+	SaveManager.Service();
+}
+
+
+/***********************************************************************************************
+ * Main_Loop -- This is the main game loop (as a single loop).                                 *
+ *                                                                                             *
+ *    This function will perform one game loop.                                                *
+ *                                                                                             *
+ * INPUT:   none                                                                               *
+ *                                                                                             *
+ * OUTPUT:  bool; Should the game end?                                                         *
+ *                                                                                             *
+ * WARNINGS:   none                                                                            *
+ *                                                                                             *
+ * HISTORY:                                                                                    *
+ *   10/01/1994 JLB : Created.                                                                 *
+ *=============================================================================================*/
+bool Main_Loop(void)
+{
+	int framedelay;
+
+	//Mono_Set_Cursor(0,0);
+
+	if (!GameActive) {return(!GameActive);}
+
+	InMainLoop = true;
+
+	/*
+	**	Call the focus loss handler
+	*/
+	#if 0
+	Check_For_Focus_Loss();
+	#else
+	while (!GameInFocus) {
+		if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
+			Sleep(500);
+			Windows_Message_Handler();
+		} else {
+			Sleep(10);
+			Windows_Message_Handler();
+			break;
+		}
+	}
+	#endif
+
+	Main_Loop_Begin_Tick();
+
+	BStart(BENCH_GAME_FRAME);
+
+	/*
+	**	If there is no theme playing, but it looks like one is required, then start one
+	**	playing. This is usually the symptom of there being no transition score.
+	*/
+	if (AudioEngine.Is_Available() && Theme.What_Is_Playing() == THEME_NONE) {
+		Theme.Queue_Song(THEME_PICK_ANOTHER);
+	}
+
+	/*
+	**	Setup the timer so that the Main_Loop function processes at the correct rate.
+	*/
+	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH &&
+		Session.CommProtocol == COMM_PROTOCOL_MULTI_E_COMP) {
+
+		//
+		// In playback mode, run as fast as possible.
+		//
+		if (Session.Play) {
+			FrameTimer = 0;
+		} else {
+			framedelay = TIMER_SECOND / Session.DesiredFrameRate;
+			FrameTimer = framedelay;
+			framedelay = 1000 / Session.DesiredFrameRate;
+			NetFrameTimer = framedelay;
+		}
+	} else {
+		FrameTimer = Options.GameSpeed;
+	}
+
+	/*
+	**	Update the display, unless we're inside a dialog.
+	*/
+	if (!Session.Play) {
+		Main_Loop_Present();
+	}
+
+	drag_select_aborted = false;
+
+	if (Main_Loop_Tick()) {
 		Sync_Delay();
-		Process_Deferred_Deletion();
-		SaveManager.Service();
+		Main_Loop_End_Tick();
 	}
 
 	BEnd(BENCH_GAME_FRAME);
