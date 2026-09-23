@@ -46,13 +46,25 @@ endforeach()
 
 #
 # ---------------------------------------------------------
-# Create actual OpenTS executable (Win32)
+# The engine as an object library, and the OpenTS executable
 # ---------------------------------------------------------
 #
-message(STATUS "${PROJECT_NAME}: Creating '${PROJECT_NAME}' executable...")
+# Another executable can host the engine by linking OpenTSEngine and calling Game_Main. An
+# object library keeps every object file, so self-registering static objects are never
+# dropped the way a static library would drop them. Resource scripts have to be linked into
+# each executable, so they stay with the executable.
+set(OPENTS_RESOURCES ${OPENTS_SRC})
+list(FILTER OPENTS_RESOURCES INCLUDE REGEX "\\.rc$")
+set(OPENTS_ENGINE_SRC ${OPENTS_SRC})
+list(FILTER OPENTS_ENGINE_SRC EXCLUDE REGEX "\\.rc$")
 
-add_executable(OpenTS WIN32 ${OPENTS_SRC})
-target_compile_features(OpenTS PRIVATE cxx_std_20)
+message(STATUS "${PROJECT_NAME}: Creating the 'OpenTSEngine' library and '${PROJECT_NAME}' executable...")
+
+add_library(OpenTSEngine OBJECT ${OPENTS_ENGINE_SRC})
+target_compile_features(OpenTSEngine PUBLIC cxx_std_20)
+
+add_executable(OpenTS WIN32 ${OPENTS_RESOURCES})
+target_link_libraries(OpenTS PRIVATE OpenTSEngine)
 
 #
 # ---------------------------------------------------------
@@ -62,9 +74,9 @@ target_compile_features(OpenTS PRIVATE cxx_std_20)
 message(STATUS "${PROJECT_NAME}: Setting binary output paths...")
 
 set_target_properties(OpenTS PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin"
+    ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib"
+    LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib"
 
     # Built under the shipped names, so the executable, the symbol file the debug record
     # names, and the map reach the run directory without a rename.
@@ -124,7 +136,7 @@ set(OPENTS_COMPILE_OPTIONS
     >
 )
 
-target_compile_options(OpenTS PRIVATE ${OPENTS_COMPILE_OPTIONS})
+target_compile_options(OpenTSEngine PRIVATE ${OPENTS_COMPILE_OPTIONS})
 
 #
 # ---------------------------------------------------------
@@ -136,20 +148,20 @@ target_compile_options(OpenTS PRIVATE ${OPENTS_COMPILE_OPTIONS})
 add_subdirectory(vqalib)
 
 message(STATUS "${PROJECT_NAME}: Adding include paths...")
-target_include_directories(OpenTS PRIVATE
+target_include_directories(OpenTSEngine PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${OPENTS_GENERATED_DIR}"
 )
 
 # The generated build stamp has to exist before anything compiles.
-add_dependencies(OpenTS OpenTSBuildStamp)
+add_dependencies(OpenTSEngine OpenTSBuildStamp)
 
 # Only the renderer's own translation unit sees bgfx, so its headers and the shaders it
 # embeds are put on that file rather than on the whole target.
-set(BGFX_ROOT "${CMAKE_SOURCE_DIR}/thirdparty/bgfx.cmake/bgfx")
+set(BGFX_ROOT "${PROJECT_SOURCE_DIR}/thirdparty/bgfx.cmake/bgfx")
 set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/bgfxbackend.cpp" PROPERTIES
     INCLUDE_DIRECTORIES
-        "${BGFX_ROOT}/include;${CMAKE_SOURCE_DIR}/thirdparty/bgfx.cmake/bx/include;${BGFX_ROOT}/examples/common/imgui"
+        "${BGFX_ROOT}/include;${PROJECT_SOURCE_DIR}/thirdparty/bgfx.cmake/bx/include;${BGFX_ROOT}/examples/common/imgui"
     COMPILE_DEFINITIONS
         "BX_CONFIG_DEBUG=$<IF:$<CONFIG:Debug>,1,$<BOOL:${BX_CONFIG_DEBUG}>>"
     COMPILE_OPTIONS "/Zc:preprocessor"
@@ -160,12 +172,12 @@ set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/bgfxbackend.cpp" PROPER
 # MSVC standard-library headers that follow still see the Win32 calling convention.
 if(OPENTS_EXPERIMENTAL_CLANG_CL AND CMAKE_SIZEOF_VOID_P EQUAL 4)
     set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/bgfxbackend.cpp" APPEND PROPERTY
-        COMPILE_OPTIONS "/FI${CMAKE_SOURCE_DIR}/thirdparty/bx-clang-compat.h"
+        COMPILE_OPTIONS "/FI${PROJECT_SOURCE_DIR}/thirdparty/bx-clang-compat.h"
     )
 endif()
 
 message(STATUS "${PROJECT_NAME}: Adding compilier definitions...")
-target_compile_definitions(OpenTS PRIVATE
+target_compile_definitions(OpenTSEngine PUBLIC
     WIN32
     _WINDOWS
     NOMINMAX
@@ -188,7 +200,7 @@ message(STATUS "${PROJECT_NAME}: Applying linker options...")
 #  + all Win32 libs
 #
 
-target_link_libraries(OpenTS PRIVATE
+target_link_libraries(OpenTSEngine PUBLIC
     VQALib
 
     bgfx
