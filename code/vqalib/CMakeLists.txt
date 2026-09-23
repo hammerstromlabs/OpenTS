@@ -19,7 +19,7 @@ add_library(VQALib STATIC ${VQALIB_SRC})
 target_compile_features(VQALib PRIVATE cxx_std_20)
 
 set_target_properties(VQALib PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+    ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib"
 )
 
 # The player and the engine have to be built the same way, since the objects end up in one

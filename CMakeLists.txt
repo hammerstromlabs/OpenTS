@@ -50,7 +50,7 @@ enable_language(RC)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(OPENTS_GAME_DIR "${CMAKE_SOURCE_DIR}/Run" CACHE PATH "Tiberian Sun game data directory")
+set(OPENTS_GAME_DIR "${PROJECT_SOURCE_DIR}/Run" CACHE PATH "Tiberian Sun game data directory")
 
 #
 # ---------------------------------------------------------
@@ -61,7 +61,7 @@ set(OPENTS_GAME_DIR "${CMAKE_SOURCE_DIR}/Run" CACHE PATH "Tiberian Sun game data
 # the version and commit that produced the binary. Stamping runs once here so the headers exist
 # before the first compile, and again per build through OpenTSBuildStamp so that committing does
 # not require a reconfigure to be reflected.
-set(OPENTS_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated")
+set(OPENTS_GENERATED_DIR "${PROJECT_BINARY_DIR}/generated")
 set(OPENTS_VERSION_HEADER "${OPENTS_GENERATED_DIR}/opents_version.h")
 set(OPENTS_STAMP_HEADER "${OPENTS_GENERATED_DIR}/opents_build.h")
 file(MAKE_DIRECTORY "${OPENTS_GENERATED_DIR}")
@@ -72,11 +72,11 @@ set(OPENTS_STAMP_ARGS
     "-DOPENTS_VERSION_PATCH=${PROJECT_VERSION_PATCH}"
     "-DOPENTS_VERSION_PRERELEASE=${OPENTS_VERSION_PRERELEASE}"
     "-DOPENTS_OFFICIAL_BUILD=${OPENTS_OFFICIAL_BUILD}"
-    "-DOPENTS_SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+    "-DOPENTS_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
     "-DOPENTS_VERSION_HEADER=${OPENTS_VERSION_HEADER}"
     "-DOPENTS_STAMP_HEADER=${OPENTS_STAMP_HEADER}"
     "-DOPENTS_ARCH=${OPENTS_ARCH}"
-    -P "${CMAKE_SOURCE_DIR}/cmake/GitStamp.cmake"
+    -P "${PROJECT_SOURCE_DIR}/cmake/GitStamp.cmake"
 )
 
 execute_process(COMMAND ${CMAKE_COMMAND} ${OPENTS_STAMP_ARGS})
@@ -91,5 +91,9 @@ add_subdirectory(thirdparty)
 add_subdirectory(code)
 add_subdirectory(code/language)
 
-enable_testing()
-add_subdirectory(tests)
+# A project embedding the engine builds it without the engine's own tests.
+option(OPENTS_BUILD_TESTS "Build the engine's tests" ${PROJECT_IS_TOP_LEVEL})
+if(OPENTS_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

@@ -23,5 +23,5 @@ endif()
 # The game loads this library by name from its own directory, so it is built beside the
 # executable rather than copied there.
 set_target_properties(Language PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin"
 )
